@@ -27,7 +27,7 @@ class Worker(Thread):
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
         for (top, right, bottom, left) in face_locations:
-            print(face_locations)
+            # print(face_locations)
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
             top *= 4
             right *= 4
@@ -84,12 +84,18 @@ class Processer():
 
                 # print("Frame:", frame.id)
                     cv2.imshow('Video', item.frame)
+
+                self.processQueue = []
+                self.processes = []
                 # cv2.waitKey(0)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
+                    print('Len', len(self.frameQueue))
                     exit(0)
                 sleep(0.01)
 
     def __del__(self):
+        import cv2
+        print('Len:', self.frameQueue.qsize())
         cv2.destroyAllWindows()
 
 class Reader(Thread):
@@ -110,7 +116,7 @@ class Reader(Thread):
             ret, frame = self.camera.read()
             if not ret:
                 return
-            print("Ok")
+            # print("Ok")
             # input()
             self.frameQueue.put(Frame(self.getNextId(), frame))
             sleep(0.01)
