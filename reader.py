@@ -36,6 +36,9 @@ class Processer():
                     continue
                 print("Frame:", frame.id)
                 cv2.imshow('Video', frame.frame)
+                # cv2.waitKey(0)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    exit(0)
                 sleep(0.01)
 
     def __del__(self):
