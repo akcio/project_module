@@ -9,7 +9,53 @@ class Frame():
     def __init__(self, id, frame):
         self.id = id
         self.frame = frame
+        self.face_locations = []
+        self.face_encodings = []
 
+
+    def process(self):
+        import face_recognition
+        small_frame = cv2.resize(self.frame, (0, 0), fx=0.25, fy=0.25)
+
+        rgb_small_frame = small_frame[:, :, ::-1]
+
+        self.face_locations = face_recognition.face_locations(rgb_small_frame)
+        self.face_encodings = face_recognition.face_encodings(rgb_small_frame, self.face_locations)
+
+        for (top, right, bottom, left) in self.face_locations:
+            # print(face_locations)
+            # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+            top *= 4
+            right *= 4
+            bottom *= 4
+            left *= 4
+
+            # Draw a box around the face
+            cv2.rectangle(self.frame, (left, top), (right, bottom), (0, 0, 255), 2)
+
+            # Draw a label with a name below the face
+            cv2.rectangle(self.frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+            font = cv2.FONT_HERSHEY_DUPLEX
+            cv2.putText(self.frame, "Unknown", (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+
+
+    def delay(self):
+        if len(self.face_locations) > 0:
+            for (top, right, bottom, left) in self.face_locations:
+                # print(face_locations)
+                # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+                top *= 4
+                right *= 4
+                bottom *= 4
+                left *= 4
+
+                # Draw a box around the face
+                cv2.rectangle(self.frame, (left, top), (right, bottom), (0, 0, 255), 2)
+
+                # Draw a label with a name below the face
+                cv2.rectangle(self.frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+                font = cv2.FONT_HERSHEY_DUPLEX
+                cv2.putText(self.frame, "Unknown", (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
 class Worker(Thread):
 
@@ -43,12 +89,78 @@ class Worker(Thread):
             cv2.putText(self.frame.frame, "Unknown", (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
 
+
+
+class SkyWorker(Thread):
+
+    def __init__(self, frameQue: Queue, output: dict):
+        Thread.__init__(self)
+        self.frameQue = frameQue
+        self.output = output # { frame_id: Frame }
+        self.procFreq = 4
+        self.sequence = self.procFreq - 1
+
+    def isProcesseble(self):
+        self.sequence = (self.sequence + 1) % self.procFreq
+        return self.sequence == 0
+
+
+    def run(self):
+        while True:
+            while not self.frameQue.empty():
+                curFrame = self.frameQue.get()
+                if self.isProcesseble():
+                    curFrame.process()
+                else:
+                    curFrame.delay()
+                if len(self.output) == 0 or (len(self.output) > 0 and curFrame.id > list(self.output.keys())[0]):
+                    self.output.update({curFrame.id: curFrame})
+
+                print(len(self.output))
+
+
+
+class NewProcesser:
+    def __init__(self, input: Queue, output: dict):
+        self.input = input
+        self.output = output
+        self.showQue = Queue()
+
+    def minimize(self, series: dict, cutPercent):
+        if cutPercent >= 1 or cutPercent <= 0 or len(series) < 10:
+            return
+        cutSize = int(len(series) * cutPercent)
+
+        while len(series) > cutSize:
+            series.pop(list(series.keys())[0], None)
+        return
+
+
+    def start(self):
+        from time import sleep
+        while True:
+            self.minimize(self.output, 0.7)
+            while len(self.output.keys()) > 0:
+                frame = list(self.output.values())[0]
+                self.output.pop(list(self.output.keys())[0], None)
+
+                self.showQue.put(frame)
+
+                while not self.showQue.empty():
+                    cv2.imshow('Video', self.showQue.get().frame)
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    exit(0)
+                sleep(0.01)
+
+
+
 class Processer():
     def __init__(self, queue : Queue):
         # Thread.__init__(self)
         self.frameQueue = queue
         self.processes = []
-        self.maxWorkers = 4
+        self.maxWorkers = 1
         self.processQueue = []
 
     def start(self):
