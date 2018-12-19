@@ -11,6 +11,7 @@ class Frame():
         self.frame = frame
         self.face_locations = []
         self.face_encodings = []
+        self.processed = False
 
 
     def process(self):
@@ -38,9 +39,14 @@ class Frame():
             font = cv2.FONT_HERSHEY_DUPLEX
             cv2.putText(self.frame, "Unknown", (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
+        self.processed = True
 
-    def delay(self):
-        if len(self.face_locations) > 0:
+
+    def delay(self, face_locations = None):
+        if face_locations != None:
+            face_locations = self.face_locations
+
+        if len(face_locations) > 0:
             for (top, right, bottom, left) in self.face_locations:
                 # print(face_locations)
                 # Scale back up face locations since the frame we detected in was scaled to 1/4 size
@@ -112,7 +118,8 @@ class SkyWorker(Thread):
                 if self.isProcesseble():
                     curFrame.process()
                 else:
-                    curFrame.delay()
+                    pass
+                    # curFrame.delay(self.lastFrame)
                 if len(self.output) == 0 or (len(self.output) > 0 and curFrame.id > list(self.output.keys())[0]):
                     self.output.update({curFrame.id: curFrame})
 
@@ -125,6 +132,7 @@ class NewProcesser:
         self.input = input
         self.output = output
         self.showQue = Queue()
+        self.lastProcessFrame = None
 
     def minimize(self, series: dict, cutPercent):
         if cutPercent >= 1 or cutPercent <= 0 or len(series) < 10:
@@ -147,7 +155,14 @@ class NewProcesser:
                 self.showQue.put(frame)
 
                 while not self.showQue.empty():
-                    cv2.imshow('Video', self.showQue.get().frame)
+                    curFrame = self.showQue.get()
+                    if curFrame.processed:
+                        if len(curFrame.face_locations) > 0:
+                            self.lastProcessFrame = curFrame.face_locations
+                    else:
+                        if self.lastProcessFrame != None:
+                            curFrame.delay(self.lastProcessFrame)
+                    cv2.imshow('Video', curFrame.frame)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     exit(0)
