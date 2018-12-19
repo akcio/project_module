@@ -1,6 +1,9 @@
 import dlib  # dlib for accurate face detection
 import cv2  # opencv
 import imutils  # helper functions from pyimagesearch.com
+import face_recognition
+
+import numpy
 
 # Grab video from your webcam
 stream = cv2.VideoCapture(0)
@@ -8,6 +11,38 @@ stream = cv2.VideoCapture(0)
 # Face detector
 detector = dlib.get_frontal_face_detector()
 
+sp = dlib.shape_predictor('shape_predictor_5_face_landmarks.dat')
+facerec = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')
+
+
+obama_image = face_recognition.load_image_file("obama.jpg")
+obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
+
+# Load a second sample picture and learn how to recognize it.
+biden_image = face_recognition.load_image_file("biden.jpg")
+biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
+
+igor_image = face_recognition.load_image_file("vormanov_front.jpg")
+igor_face_encoding = face_recognition.face_encodings(igor_image)[0]
+
+print(len(igor_face_encoding))
+
+# Create arrays of known face encodings and their names
+known_face_encodings = [
+    obama_face_encoding,
+    biden_face_encoding,
+    igor_face_encoding
+]
+known_face_names = [
+    "Barack Obama",
+    "Joe Biden"
+    "Igor"
+]
+
+cnt = 0
+
+def calcDescriptor():
+    pass
 
 # Fancy box drawing function by Dan Masek
 def draw_border(img, pt1, pt2, color, thickness, r, d):
@@ -52,6 +87,7 @@ while True:
 
     # detect faces in the gray scale frame
     face_rects = detector(gray, 0)
+    face_encode = []
 
     # loop over the face detections
     for i, d in enumerate(face_rects):
@@ -59,6 +95,14 @@ while True:
 
         # draw a fancy border around the faces
         draw_border(overlay, (x1, y1), (x2, y2), (162, 255, 0), 2, 10, 10)
+
+        if cnt == 0:
+            shape = sp(frame, d)
+            face_descriptor = facerec.compute_face_descriptor(frame, shape)
+            a = face_recognition.compare_faces(known_face_encodings, [face_descriptor])
+            print(a)
+        cnt = (cnt+1)%4
+
 
     # make semi-transparent bounding box
     cv2.addWeighted(overlay, alpha, output, 1 - alpha, 0, output)
