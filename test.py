@@ -138,10 +138,13 @@ while True:
             #         biggest_class_length = class_length
             # biggest_class = i
 
+            font = cv2.FONT_HERSHEY_DUPLEX
             if newImageClass < len(descriptorNames):
                 print(descriptorNames[newImageClass])
                 print(i)
-
+                cv2.putText(overlay, descriptorNames[newImageClass], (d.left() + 6, d.bottom() - 6), font, 1.0, (255, 255, 255), 1)
+            else:
+                cv2.putText(overlay, "Unknown", (d.left() +6, d.bottom() - 6), font, 1.0, (255,255,255), 1)
             # a = face_recognition.compare_faces(known_face_encodings, [face_descriptor])
             # print(a)
         cnt = (cnt+1)%4
