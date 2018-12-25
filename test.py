@@ -126,18 +126,20 @@ while True:
             localDescriptors = descriptors + [face_descriptor]
             localLabels = dlib.chinese_whispers_clustering(localDescriptors, 0.5)
 
-            num_classes = len(set(localLabels))
-            print(num_classes)
-            biggest_class = None
-            biggest_class_length = 0
-            for i in range(0, num_classes):
-                class_length = len([label for label in localLabels if label == i])
-                if class_length > biggest_class_length:
-                    biggest_class_length = class_length
-            biggest_class = i
 
-            if biggest_class < len(descriptorNames):
-                print(descriptorNames[biggest_class])
+            newImageClass = localLabels[-1]
+            # num_classes = len(set(localLabels))
+            # print(num_classes)
+            # biggest_class = None
+            # biggest_class_length = 0
+            # for i in range(0, num_classes):
+            #     class_length = len([label for label in localLabels if label == i])
+            #     if class_length > biggest_class_length:
+            #         biggest_class_length = class_length
+            # biggest_class = i
+
+            if newImageClass < len(descriptorNames):
+                print(descriptorNames[newImageClass])
                 print(i)
 
             # a = face_recognition.compare_faces(known_face_encodings, [face_descriptor])
