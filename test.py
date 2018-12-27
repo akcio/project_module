@@ -15,29 +15,29 @@ sp = dlib.shape_predictor('shape_predictor_5_face_landmarks.dat')
 facerec = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')
 
 
-obama_image = face_recognition.load_image_file("obama.jpg")
-obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
-
-# Load a second sample picture and learn how to recognize it.
-biden_image = face_recognition.load_image_file("biden.jpg")
-biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
-
-igor_image = face_recognition.load_image_file("vormanov_front.jpg")
-igor_face_encoding = face_recognition.face_encodings(igor_image)[0]
-
-print(len(igor_face_encoding))
-
-# Create arrays of known face encodings and their names
-known_face_encodings = [
-    obama_face_encoding,
-    biden_face_encoding,
-    igor_face_encoding
-]
-known_face_names = [
-    "Barack Obama",
-    "Joe Biden"
-    "Igor"
-]
+# obama_image = face_recognition.load_image_file("obama.jpg")
+# obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
+#
+# # Load a second sample picture and learn how to recognize it.
+# biden_image = face_recognition.load_image_file("biden.jpg")
+# biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
+#
+# igor_image = face_recognition.load_image_file("vormanov_front.jpg")
+# igor_face_encoding = face_recognition.face_encodings(igor_image)[0]
+#
+# print(len(igor_face_encoding))
+#
+# # Create arrays of known face encodings and their names
+# known_face_encodings = [
+#     obama_face_encoding,
+#     biden_face_encoding,
+#     igor_face_encoding
+# ]
+# known_face_names = [
+#     "Barack Obama",
+#     "Joe Biden"
+#     "Igor"
+# ]
 
 cnt = 0
 
@@ -55,7 +55,7 @@ def loadDataSet():
             shape = sp(img, d)
             face_descriptor = facerec.compute_face_descriptor(img, shape)
             descriptors.append(face_descriptor)
-            descriptorNames.append(str(f))
+            descriptorNames.append(str(os.path.basename(f)).split('.')[0])
 
     labels = dlib.chinese_whispers_clustering(descriptors, 0.6)
     print("Classes: ", len(set(labels)))
@@ -119,35 +119,34 @@ while True:
         # draw a fancy border around the faces
         draw_border(overlay, (x1, y1), (x2, y2), (162, 255, 0), 2, 10, 10)
 
-        if cnt == 0:
-            shape = sp(frame, d)
-            face_descriptor = facerec.compute_face_descriptor(frame, shape)
+        # if cnt == 0:
+        shape = sp(frame, d)
+        face_descriptor = facerec.compute_face_descriptor(frame, shape)
 
-            localDescriptors = descriptors + [face_descriptor]
-            localLabels = dlib.chinese_whispers_clustering(localDescriptors, 0.5)
+        localDescriptors = descriptors + [face_descriptor]
+        localLabels = dlib.chinese_whispers_clustering(localDescriptors, 0.5)
 
 
-            newImageClass = localLabels[-1]
-            # num_classes = len(set(localLabels))
-            # print(num_classes)
-            # biggest_class = None
-            # biggest_class_length = 0
-            # for i in range(0, num_classes):
-            #     class_length = len([label for label in localLabels if label == i])
-            #     if class_length > biggest_class_length:
-            #         biggest_class_length = class_length
-            # biggest_class = i
+        newImageClass = localLabels[-1]
+        # num_classes = len(set(localLabels))
+        # print(num_classes)
+        # biggest_class = None
+        # biggest_class_length = 0
+        # for i in range(0, num_classes):
+        #     class_length = len([label for label in localLabels if label == i])
+        #     if class_length > biggest_class_length:
+        #         biggest_class_length = class_length
+        # biggest_class = i
 
-            font = cv2.FONT_HERSHEY_DUPLEX
-            if newImageClass < len(descriptorNames):
-                print(descriptorNames[newImageClass])
-                print(i)
-                cv2.putText(overlay, descriptorNames[newImageClass], (d.left() + 6, d.bottom() - 6), font, 1.0, (255, 255, 255), 1)
-            else:
-                cv2.putText(overlay, "Unknown", (d.left() +6, d.bottom() - 6), font, 1.0, (255,255,255), 1)
-            # a = face_recognition.compare_faces(known_face_encodings, [face_descriptor])
-            # print(a)
-        cnt = (cnt+1)%4
+        font = cv2.FONT_HERSHEY_DUPLEX
+        if newImageClass < len(descriptorNames):
+            print(descriptorNames[newImageClass])
+            print(i)
+            cv2.putText(overlay, descriptorNames[newImageClass], (d.left() + 6, d.bottom() - 6), font, 1.0, (255, 255, 255), 1)
+        else:
+            cv2.putText(overlay, "Unknown", (d.left() +6, d.bottom() - 6), font, 1.0, (255,255,255), 1)
+
+        # cnt = (cnt+1)%4
 
 
     # make semi-transparent bounding box
