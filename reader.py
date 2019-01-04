@@ -3,6 +3,39 @@ import numpy
 
 from threading import Thread
 from queue import Queue
+import face_recognition
+
+# Load a sample picture and learn how to recognize it.
+obama_image = face_recognition.load_image_file("obama.jpg")
+obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
+
+# Load a second sample picture and learn how to recognize it.
+biden_image = face_recognition.load_image_file("biden.jpg")
+biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
+
+# Create arrays of known face encodings and their names
+known_face_encodings = [
+    obama_face_encoding,
+    biden_face_encoding
+]
+known_face_names = [
+    "Barack Obama",
+    "Joe Biden"
+]
+
+def loadDataSet():
+    import os.path
+    import glob
+    global  known_face_names, known_face_encodings
+    for f in glob.glob(os.path.join("images", "*.jpg")):
+        print(f)
+        img = face_recognition.load_image_file(f)
+        face_encoding = face_recognition.face_encodings(img)[0]
+        known_face_encodings += [face_encoding]
+        known_face_names += [f]
+
+
+loadDataSet()
 
 class Frame():
 
@@ -16,23 +49,39 @@ class Worker(Thread):
     def __init__(self, frame : Frame):
         Thread.__init__(self)
         self.frame = frame
+        self.scaleFactor = 1
 
     def start(self):
         import face_recognition
-        small_frame = cv2.resize(self.frame.frame, (0, 0), fx=0.25, fy=0.25)
+        from datetime import datetime
+        timeStart = datetime.now()
+        small_frame = cv2.resize(self.frame.frame, (0, 0), fx=1/self.scaleFactor, fy=1/self.scaleFactor)
 
         rgb_small_frame = small_frame[:, :, ::-1]
 
         face_locations = face_recognition.face_locations(rgb_small_frame)
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
-        for (top, right, bottom, left) in face_locations:
+        face_names = []
+        for face_encoding in face_encodings:
+            # See if the face is a match for the known face(s)
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+            name = "Unknown"
+
+            # If a match was found in known_face_encodings, just use the first one.
+            if True in matches:
+                first_match_index = matches.index(True)
+                name = known_face_names[first_match_index]
+
+            face_names.append(name)
+
+        for (top, right, bottom, left), name in zip(face_locations, face_names):
             # print(face_locations)
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-            top *= 4
-            right *= 4
-            bottom *= 4
-            left *= 4
+            top *= self.scaleFactor
+            right *= self.scaleFactor
+            bottom *= self.scaleFactor
+            left *= self.scaleFactor
 
             # Draw a box around the face
             cv2.rectangle(self.frame.frame, (left, top), (right, bottom), (0, 0, 255), 2)
@@ -40,15 +89,17 @@ class Worker(Thread):
             # Draw a label with a name below the face
             cv2.rectangle(self.frame.frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
             font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(self.frame.frame, "Unknown", (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-
+            cv2.putText(self.frame.frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+        timeEnd = datetime.now()
+        timeDelta = timeEnd - timeStart
+        print(timeDelta)
 
 class Processer():
     def __init__(self, queue : Queue):
         # Thread.__init__(self)
         self.frameQueue = queue
         self.processes = []
-        self.maxWorkers = 4
+        self.maxWorkers = 3
         self.processQueue = []
 
     def start(self):
