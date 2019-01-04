@@ -113,6 +113,7 @@ while True:
     face_encode = []
 
     # loop over the face detections
+    localDescriptors = descriptors + []
     for i, d in enumerate(face_rects):
         x1, y1, x2, y2, w, h = d.left(), d.top(), d.right() + 1, d.bottom() + 1, d.width(), d.height()
 
@@ -123,7 +124,8 @@ while True:
         shape = sp(frame, d)
         face_descriptor = facerec.compute_face_descriptor(frame, shape)
 
-        localDescriptors = descriptors + [face_descriptor]
+        localDescriptors += [face_descriptor]
+
         localLabels = dlib.chinese_whispers_clustering(localDescriptors, 0.5)
 
 
@@ -162,4 +164,4 @@ while True:
 
 # cleanup
 cv2.destroyAllWindows()
-stream.stop()
+# stream.stop()
