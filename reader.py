@@ -4,6 +4,24 @@ import numpy
 from threading import Thread
 from queue import Queue
 
+known_face_encodings = []
+known_face_names = []
+
+def loadDataSet():
+    import face_recognition
+    import os.path
+    import glob
+    global  known_face_names, known_face_encodings
+    for f in glob.glob(os.path.join("images", "*.jpg")):
+        print(f)
+        img = face_recognition.load_image_file(f)
+        face_encoding = face_recognition.face_encodings(img)[0]
+        known_face_encodings += [face_encoding]
+        known_face_names += [f]
+
+
+loadDataSet()
+
 class Frame():
 
     def __init__(self, id, frame):
@@ -23,7 +41,20 @@ class Frame():
         self.face_locations = face_recognition.face_locations(rgb_small_frame)
         self.face_encodings = face_recognition.face_encodings(rgb_small_frame, self.face_locations)
 
-        for (top, right, bottom, left) in self.face_locations:
+        face_names = []
+        for face_encoding in self.face_encodings:
+            # See if the face is a match for the known face(s)
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+            name = "Unknown"
+
+            # If a match was found in known_face_encodings, just use the first one.
+            if True in matches:
+                first_match_index = matches.index(True)
+                name = known_face_names[first_match_index]
+
+            face_names.append(name)
+
+        for (top, right, bottom, left), name in zip(self.face_locations, face_names):
             # print(face_locations)
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
             top *= 4
@@ -37,7 +68,7 @@ class Frame():
             # Draw a label with a name below the face
             cv2.rectangle(self.frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
             font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(self.frame, "Unknown", (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+            cv2.putText(self.frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
         self.processed = True
 
