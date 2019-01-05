@@ -30,6 +30,8 @@ class Frame():
         self.face_locations = []
         self.face_encodings = []
         self.processed = False
+        from datetime import datetime
+        self.created = datetime.now()
 
 
     def process(self):
@@ -134,7 +136,7 @@ class SkyWorker(Thread):
         Thread.__init__(self)
         self.frameQue = frameQue
         self.output = output # { frame_id: Frame }
-        self.procFreq = 4
+        self.procFreq = 1
         self.sequence = self.procFreq - 1
 
     def isProcesseble(self):
@@ -194,6 +196,8 @@ class NewProcesser:
                         if self.lastProcessFrame != None:
                             curFrame.delay(self.lastProcessFrame)
                     cv2.imshow('Video', curFrame.frame)
+                    from datetime import datetime
+                    print(datetime.now() - curFrame.created)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     exit(0)
@@ -206,7 +210,7 @@ class Processer():
         # Thread.__init__(self)
         self.frameQueue = queue
         self.processes = []
-        self.maxWorkers = 1
+        self.maxWorkers = 3
         self.processQueue = []
 
     def start(self):
