@@ -5,22 +5,22 @@ from threading import Thread
 from queue import Queue
 import face_recognition
 
-# Load a sample picture and learn how to recognize it.
-obama_image = face_recognition.load_image_file("obama.jpg")
-obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
-
-# Load a second sample picture and learn how to recognize it.
-biden_image = face_recognition.load_image_file("biden.jpg")
-biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
+# # Load a sample picture and learn how to recognize it.
+# obama_image = face_recognition.load_image_file("obama.jpg")
+# obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
+#
+# # Load a second sample picture and learn how to recognize it.
+# biden_image = face_recognition.load_image_file("biden.jpg")
+# biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
 
 # Create arrays of known face encodings and their names
 known_face_encodings = [
-    obama_face_encoding,
-    biden_face_encoding
+    # obama_face_encoding,
+    # biden_face_encoding
 ]
 known_face_names = [
-    "Barack Obama",
-    "Joe Biden"
+    # "Barack Obama",
+    # "Joe Biden"
 ]
 
 def loadDataSet():
@@ -32,7 +32,7 @@ def loadDataSet():
         img = face_recognition.load_image_file(f)
         face_encoding = face_recognition.face_encodings(img)[0]
         known_face_encodings += [face_encoding]
-        known_face_names += [f]
+        known_face_names += [os.path.split(f)[-1]]
 
 
 loadDataSet()
@@ -49,7 +49,7 @@ class Worker(Thread):
     def __init__(self, frame : Frame):
         Thread.__init__(self)
         self.frame = frame
-        self.scaleFactor = 1
+        self.scaleFactor = 2
 
     def start(self):
         import face_recognition
@@ -62,6 +62,7 @@ class Worker(Thread):
         face_locations = face_recognition.face_locations(rgb_small_frame)
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
+        timeEndSegmentation = datetime.now()
         face_names = []
         for face_encoding in face_encodings:
             # See if the face is a match for the known face(s)
@@ -74,6 +75,8 @@ class Worker(Thread):
                 name = known_face_names[first_match_index]
 
             face_names.append(name)
+
+        timeEndClassification = datetime.now()
 
         for (top, right, bottom, left), name in zip(face_locations, face_names):
             # print(face_locations)
@@ -91,15 +94,18 @@ class Worker(Thread):
             font = cv2.FONT_HERSHEY_DUPLEX
             cv2.putText(self.frame.frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
         timeEnd = datetime.now()
-        timeDelta = timeEnd - timeStart
-        print(timeDelta)
+        # timeDelta = timeEnd - timeStart
+        print((timeEndSegmentation - timeStart).total_seconds(),
+              (timeEndClassification - timeEndSegmentation).total_seconds(),
+              (timeEnd - timeEndClassification).total_seconds(),
+              len([x for x in face_names if x != 'Unknown']), len(face_names))
 
 class Processer():
     def __init__(self, queue : Queue):
         # Thread.__init__(self)
         self.frameQueue = queue
         self.processes = []
-        self.maxWorkers = 3
+        self.maxWorkers = 1
         self.processQueue = []
 
     def start(self):
@@ -142,7 +148,7 @@ class Processer():
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     print('Len', len(self.frameQueue))
                     exit(0)
-                sleep(0.01)
+                # sleep(0.01)
 
     def __del__(self):
         import cv2
@@ -152,7 +158,8 @@ class Processer():
 class Reader(Thread):
     def __init__(self, queue : Queue):
         Thread.__init__(self)
-        self.camera = cv2.VideoCapture(0)
+        # self.camera = cv2.VideoCapture(0)
+        self.camera = cv2.VideoCapture('testVideo/1person.mp4')
         self.waiting = Queue()
         self.id = 0
         self.frameQueue = queue
@@ -166,11 +173,12 @@ class Reader(Thread):
         while True:
             ret, frame = self.camera.read()
             if not ret:
+                exit(100)
                 return
             # print("Ok")
             # input()
             self.frameQueue.put(Frame(self.getNextId(), frame))
-            sleep(0.01)
+            # sleep(0.01)
 
     def __del__(self):
         self.camera.release()
