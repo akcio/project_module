@@ -46,8 +46,11 @@ descriptors = []
 descriptorNames = []
 
 def loadDataSet():
+    from datetime import datetime
+
     import os.path
     import glob
+    start = datetime.now()
     for f in glob.glob(os.path.join("images", "*.jpg")):
         print(f)
         img = dlib.load_rgb_image(f)
@@ -60,7 +63,9 @@ def loadDataSet():
 
     labels = dlib.chinese_whispers_clustering(descriptors, 0.6)
     print("Classes: ", len(set(labels)))
-    pass
+    end = datetime.now()
+    print(end-start)
+    exit(0)
 
 
 loadDataSet()
@@ -99,7 +104,7 @@ while True:
     # read frames from live web cam stream
     (grabbed, frame) = stream.read()
     
-    startTime = datetime.now()
+    timeStart = datetime.now()
     
     # resize the frames to be smaller and switch to gray scale
     #frame = imutils.resize(frame, width=700)
@@ -115,10 +120,11 @@ while True:
     # detect faces in the gray scale frame
     face_rects = detector(gray, 0)
     face_encode = []
-    endSegmentation = datetime.now()
+    timeEndSegmentation = datetime.now()
 
     # loop over the face detections
     localDescriptors = descriptors + []
+    face_names = []
     for i, d in enumerate(face_rects):
         x1, y1, x2, y2, w, h = d.left(), d.top(), d.right() + 1, d.bottom() + 1, d.width(), d.height()
 
@@ -151,9 +157,11 @@ while True:
             if localLabels[i] == newImageClass:
                 founded = True
                 cv2.putText(overlay, descriptorNames[i], (d.left() + 6, d.bottom() - 6), font, 1.0, (255, 255, 255), 1)
+                face_names.append(descriptorNames[i])
                 break
         if not founded:
             cv2.putText(overlay, "Unknown", (d.left() +6, d.bottom() - 6), font, 1.0, (255,255,255), 1)
+            face_names.append('Unknown')
         #if newImageClass < len(descriptorNames):
         #    print(descriptorNames[newImageClass])
         #    print(i)
@@ -163,12 +171,21 @@ while True:
 
         # cnt = (cnt+1)%4
 
-    endClassification = datetime.now()
+    timeEndClassification = datetime.now()
     # make semi-transparent bounding box
     cv2.addWeighted(overlay, alpha, output, 1 - alpha, 0, output)
+    
 
+    
     # show the frame
     cv2.imshow("Face Detection", output)
+    timeEnd = datetime.now()
+    print((timeEndSegmentation - timeStart).total_seconds(),
+            (timeEndClassification - timeEndSegmentation).total_seconds(),
+            (timeEnd - timeEndClassification).total_seconds(),
+            len([x for x in face_names if x != 'Unknown']), len(face_names))
+
+    
     key = cv2.waitKey(1) & 0xFF
 
     # press q to break out of the loop
