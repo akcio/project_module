@@ -2,12 +2,16 @@ import dlib  # dlib for accurate face detection
 import cv2  # opencv
 import imutils  # helper functions from pyimagesearch.com
 import face_recognition
+import os
 
 import numpy
 
 # Grab video from your webcam
-stream = cv2.VideoCapture(0)
-
+# stream = cv2.VideoCapture(0)
+if not os.path.exists('testVideo/1person.mp4'):
+    print('File not found.')
+    exit(0)
+stream = cv2.VideoCapture('testVideo/1person.mp4')
 # Face detector
 detector = dlib.get_frontal_face_detector()
 
@@ -96,7 +100,7 @@ def draw_border(img, pt1, pt2, color, thickness, r, d):
 while True:
     # read frames from live web cam stream
     (grabbed, frame) = stream.read()
-
+    
     # resize the frames to be smaller and switch to gray scale
     frame = imutils.resize(frame, width=700)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
