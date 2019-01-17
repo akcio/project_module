@@ -4,6 +4,7 @@ import numpy
 from threading import Thread
 from queue import Queue
 import face_recognition
+from timer import Timer
 
 # # Load a sample picture and learn how to recognize it.
 # obama_image = face_recognition.load_image_file("obama.jpg")
@@ -34,8 +35,12 @@ def loadDataSet():
         known_face_encodings += [face_encoding]
         known_face_names += [os.path.split(f)[-1]]
 
+t = Timer()
 
+t.start()
 loadDataSet()
+a = t.stop()
+print ("Load TIme: ", a)
 
 class Frame():
 
