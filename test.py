@@ -3,6 +3,7 @@ import cv2  # opencv
 import imutils  # helper functions from pyimagesearch.com
 import face_recognition
 import os
+from scipy.spatial import distance
 
 import numpy
 
@@ -50,7 +51,6 @@ def loadDataSet():
 
     import os.path
     import glob
-    start = datetime.now()
     for f in glob.glob(os.path.join("images", "*.jpg")):
         print(f)
         img = dlib.load_rgb_image(f)
@@ -61,11 +61,8 @@ def loadDataSet():
             descriptors.append(face_descriptor)
             descriptorNames.append(str(os.path.basename(f)).split('.')[0])
 
-    labels = dlib.chinese_whispers_clustering(descriptors, 0.6)
+    labels = dlib.chinese_whispers_clustering(descriptors, 0.5)
     print("Classes: ", len(set(labels)))
-    end = datetime.now()
-    print(end-start)
-    exit(0)
 
 
 loadDataSet()
@@ -154,6 +151,11 @@ while True:
         founded = False
         font = cv2.FONT_HERSHEY_DUPLEX
         for i in range(len(localLabels)-1):
+            if distance.euclidean(face_descriptor, descriptors[i]) < 0.6:
+                cv2.putText(overlay, descriptorNames[i], (d.left() + 6, d.bottom() - 6), font, 1.0, (255, 255, 255), 1)
+                face_names.append(descriptorNames[i])
+                founded = True
+                break
             if localLabels[i] == newImageClass:
                 founded = True
                 cv2.putText(overlay, descriptorNames[i], (d.left() + 6, d.bottom() - 6), font, 1.0, (255, 255, 255), 1)
@@ -180,10 +182,11 @@ while True:
     # show the frame
     cv2.imshow("Face Detection", output)
     timeEnd = datetime.now()
-    print((timeEndSegmentation - timeStart).total_seconds(),
-            (timeEndClassification - timeEndSegmentation).total_seconds(),
-            (timeEnd - timeEndClassification).total_seconds(),
-            len([x for x in face_names if x != 'Unknown']), len(face_names))
+    print((timeEndClassification-timeEndSegmentation).total_seconds())
+    # print((timeEndSegmentation - timeStart).total_seconds(),
+    #         (timeEndClassification - timeEndSegmentation).total_seconds(),
+    #         (timeEnd - timeEndClassification).total_seconds(),
+    #         len([x for x in face_names if x != 'Unknown']), len(face_names))
 
     
     key = cv2.waitKey(1) & 0xFF
